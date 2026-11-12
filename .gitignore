@@ -1,0 +1,47 @@
+# ===== Dokumen kerja (tidak ikut di-commit) =====
+AGENTS.md
+PRD.md
+DESIGN.md
+
+# ===== Environment & secrets =====
+.env
+.env.local
+.env.*.local
+
+# ===== Dataset (diunduh manual) =====
+data
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyo
+.venv
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# ===== Jupyter =====
+.ipynb_checkpoints/
+
+# ===== Artefak model =====
+ml/*.joblib
+ml/*.pkl
+
+# ===== Node / frontend =====
+node_modules/
+.pnpm-store/
+frontend/dist/
+*.tsbuildinfo
+
+# ===== Log =====
+*.log
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
