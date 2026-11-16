@@ -9,7 +9,6 @@ PyJWT==2.15.1
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-dotenv==1.2.4
-email-validator==2.3.0
 
 # Import and ML scripts
 requests==2.34.2

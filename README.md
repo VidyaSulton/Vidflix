@@ -2,7 +2,7 @@
 
 A movie catalog featuring a **Similar Movies** recommendation system powered by **content-based filtering** (TF-IDF + cosine similarity).
 
-> Status: Stage 1 — Backend foundation and initial database schema. API endpoints and the frontend are not implemented yet.
+> Status: Stage 2 — Data import tooling. API endpoints, recommendation training, and the frontend are not implemented yet.
 
 ## Tech Stack
 
@@ -74,6 +74,66 @@ cd backend
 
 The backend reads `DATABASE_URL`, `JWT_SECRET`, and other settings from `.env`
 at the repository root.
+
+## Data Import
+
+`scripts/import_data.py` loads the MovieLens CSV files into PostgreSQL and then
+fetches movie overviews and posters from TMDB.
+
+What it does, in order:
+
+1. Upserts `movies` from `movies.csv`, parsing `Toy Story (1995)` into
+   `title = "Toy Story"` and `year = 1995`.
+2. Attaches `tmdb_id` from `links.csv`.
+3. Upserts `movielens_ratings` from `ratings.csv` (the `timestamp` column is not stored).
+4. Fetches `overview` and `poster_path` from TMDB for movies that have a `tmdb_id`.
+
+The script is idempotent: running it again updates existing rows instead of
+creating duplicates. Rows are committed in batches, so an interrupted run can be
+resumed by running the same command again.
+
+```powershell
+# 1. CSV only, no network calls (fast)
+.\.venv\Scripts\python.exe scripts\import_data.py --skip-tmdb
+
+# 2. Quick TMDB test on the first 20 movies that still need metadata
+.\.venv\Scripts\python.exe scripts\import_data.py --limit 20
+
+# 3. Full import (CSV data + TMDB enrichment)
+.\.venv\Scripts\python.exe scripts\import_data.py
+```
+
+Useful flags:
+
+| Flag | Meaning |
+|---|---|
+| `--limit N` | Enrich at most `N` movies with TMDB data. |
+| `--skip-tmdb` | Import movies and ratings only; never call TMDB. |
+| `--refresh-tmdb` | Re-fetch TMDB metadata even when overview/poster already exist. |
+
+Notes:
+
+- `TMDB_API_KEY` may be a v3 API key or a v4 read access token; the script detects which one to use.
+- Requests are spaced out and retried on rate limits, network errors, and 5xx responses.
+- Enriching roughly 9,700 movies usually takes 10–30 minutes depending on the network.
+- Movies whose TMDB entry has neither an overview nor a poster stay empty and are
+  retried on the next run. Movies with at least one of the two are treated as done.
+- Re-running the CSV import never erases TMDB metadata that was already fetched.
+
+Verify the result:
+
+```sql
+SELECT COUNT(*) FROM movies;
+SELECT COUNT(*) FROM movielens_ratings;
+SELECT COUNT(*) FROM movies WHERE tmdb_id IS NULL;
+SELECT COUNT(*) FROM movies WHERE overview IS NULL;
+SELECT COUNT(*) FROM movies WHERE poster_path IS NULL;
+```
+
+`notebooks/01_data_exploration.ipynb` records the CSV checks that shaped the
+import (missing values, year parsing, genre coverage, `tmdb_id` coverage, and
+rating statistics). Notebook tooling (`ipykernel`, `nbconvert`) is
+development-only and is not part of `backend/requirements.txt`.
 
 ## Repository Structure (Planned)
 
